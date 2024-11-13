@@ -21,8 +21,6 @@ typedef struct Query
     struct Query *next; // Pointer to the next query in the linked list
 } Query;
 
-
-
 typedef struct Rule
 {
     char ip_start[16];      // Starting IP in range, or single IP
@@ -45,8 +43,7 @@ typedef struct Request
     struct Request *next;
 } Request;
 
-
-//function to extract ranged or single ip and port from the command, and add it to the rule
+// function to extract ranged or single ip and port from the command, and add it to the rule
 
 int is_valid_ip(const char *ip)
 {
@@ -81,7 +78,8 @@ int is_valid_ip(const char *ip)
     return dots == 3;
 }
 
-int is_valid_ipRange(const char *ipRange){
+int is_valid_ipRange(const char *ipRange)
+{
     char ipRange_copy[16];
     strncpy(ipRange_copy, ipRange, 16);
     // Split IP range
@@ -98,10 +96,11 @@ int is_valid_ipRange(const char *ipRange){
     return 1; // Valid rule
 }
 
- //function for A, C, D
+// function for A, C, D
 int is_valid_rule(char *ipRange, char *portRange)
 {
-    if (ipRange == NULL || portRange == NULL) {
+    if (ipRange == NULL || portRange == NULL)
+    {
         return 0; // Invalid rule
     }
 
@@ -116,7 +115,8 @@ int is_valid_rule(char *ipRange, char *portRange)
     // Split IP range
     char *ip_start = strtok(ipRange_copy, "-");
     char *ip_end = strtok(NULL, "-");
-    if (ip_start == NULL) {
+    if (ip_start == NULL)
+    {
         return 0; // Invalid IP range
     }
     if (ip_end == NULL)
@@ -125,7 +125,8 @@ int is_valid_rule(char *ipRange, char *portRange)
     // Split port range
     char *port_start_str = strtok(portRange_copy, "-");
     char *port_end_str = strtok(NULL, "-");
-    if (port_start_str == NULL) {
+    if (port_start_str == NULL)
+    {
         return 0; // Invalid port range
     }
     uint16_t port_start = atoi(port_start_str);
@@ -185,10 +186,11 @@ int is_valid_command(char *command)
     return 0; // Invalid command type
 }
 
-
-void add_query_to_rule(Rule *rule, const char *ip, uint16_t port) {
+void add_query_to_rule(Rule *rule, const char *ip, uint16_t port)
+{
     Query *new_query = (Query *)malloc(sizeof(Query));
-    if (!new_query) {
+    if (!new_query)
+    {
         perror("Failed to allocate memory for new query");
         return;
     }
@@ -227,9 +229,11 @@ void list_requests(Request *head)
     }
 }
 
-void add_rule(RuleSet *rules, const char *ip_start, const char *ip_end, uint16_t port_start, uint16_t port_end) {
+void add_rule(RuleSet *rules, const char *ip_start, const char *ip_end, uint16_t port_start, uint16_t port_end)
+{
     Rule *new_rule = (Rule *)malloc(sizeof(Rule));
-    if (!new_rule) {
+    if (!new_rule)
+    {
         perror("Failed to allocate memory for new rule");
         return;
     }
@@ -242,13 +246,17 @@ void add_rule(RuleSet *rules, const char *ip_start, const char *ip_end, uint16_t
     new_rule->next = NULL;
     new_rule->matched_queries = NULL;
 
-    if (rules->head == NULL) {
+    if (rules->head == NULL)
+    {
         // If the list is empty, set the new rule as the head
         rules->head = new_rule;
-    } else {
+    }
+    else
+    {
         // Traverse to the end of the list and insert the new rule
         Rule *current = rules->head;
-        while (current->next != NULL) {
+        while (current->next != NULL)
+        {
             current = current->next;
         }
         current->next = new_rule;
@@ -265,7 +273,8 @@ void check_rule(RuleSet *rules, char *ip, uint16_t port)
     struct in_addr ip_addr, ip_start_addr, ip_end_addr;
 
     // Convert the input IP to binary format
-    if (inet_pton(AF_INET, ip, &ip_addr) != 1) {
+    if (inet_pton(AF_INET, ip, &ip_addr) != 1)
+    {
         printf("Invalid IP address format.\n");
         return;
     }
@@ -273,10 +282,12 @@ void check_rule(RuleSet *rules, char *ip, uint16_t port)
     // Convert the input IP to a 32-bit integer in host byte order for comparison
     uint32_t ip_int = ntohl(ip_addr.s_addr);
 
-    while (current != NULL) {
+    while (current != NULL)
+    {
         // Convert rule IP start and end to binary format
         if (inet_pton(AF_INET, current->ip_start, &ip_start_addr) != 1 ||
-            inet_pton(AF_INET, current->ip_end, &ip_end_addr) != 1) {
+            inet_pton(AF_INET, current->ip_end, &ip_end_addr) != 1)
+        {
             printf("Invalid IP range in rule.\n");
             current = current->next;
             continue;
@@ -288,12 +299,13 @@ void check_rule(RuleSet *rules, char *ip, uint16_t port)
 
         // Check if the IP is within the IP range and port is within the port range
         if (ip_int >= ip_start_int && ip_int <= ip_end_int &&
-            port >= current->port_start && port <= current->port_end) {
+            port >= current->port_start && port <= current->port_end)
+        {
 
             // IP and port match, add this query to the rule's matched queries
             printf("Connection accepted\n");
             add_query_to_rule(current, ip, port);
-            return;  // Exit after finding the first matching rule
+            return; // Exit after finding the first matching rule
         }
         current = current->next;
     }
@@ -302,19 +314,18 @@ void check_rule(RuleSet *rules, char *ip, uint16_t port)
     printf("Connection rejected\n");
 }
 
-
-// void free_rules(RuleSet *rules)
-// {
-//     Rule *current = rules->head;
-//     while (current != NULL)
-//     {
-//         Rule *next = current->next;
-//         free(current);
-//         current = next;
-//     }
-//     rules->head = NULL;
-//     rules->size = 0;
-// }
+void free_rules(RuleSet *rules)
+{
+    Rule *current = rules->head;
+    while (current != NULL)
+    {
+        Rule *next = current->next;
+        free(current);
+        current = next;
+    }
+    rules->head = NULL;
+    rules->size = 0;
+}
 
 void list_rules(RuleSet *rules)
 {
@@ -399,10 +410,11 @@ void delete_rule(RuleSet *rules, char *ip_start, char *ip_end, uint16_t port_sta
     printf("Rule not found\n");
 }
 
-
 int main(int argc, char **argv)
 {
-    /* to be written */
+
+    Request *head = NULL;
+    RuleSet rules = {NULL, 0};
 
     // RuleSet rules= {NULL, 0};
     // linked list of requests
@@ -416,21 +428,20 @@ int main(int argc, char **argv)
     else if (strcmp(argv[1], "-i") == 0 && argc == 2)
     {
         // printf("Server running in interactive mode. use \"exit\" to exit\n");
-        Request *head = NULL;
-        RuleSet rules = {NULL, 0};
-
 
         while (1)
         {
             char command[100];
             // printf("\n Enter command: ");
-            if(fgets(command, sizeof(command), stdin)==NULL){
+            if (fgets(command, sizeof(command), stdin) == NULL)
+            {
                 break;
             }
             // remove newline character
             command[strcspn(command, "\n")] = 0;
 
-            if(strncmp(command, "exit", 4) == 0){
+            if (strncmp(command, "exit", 4) == 0)
+            {
                 exit(0);
             }
 
@@ -455,16 +466,16 @@ int main(int argc, char **argv)
                 }
                 current->next = new_request;
             }
-            //temp rule obj to extract single ip and port or rannged ip and port
-            // Rule temp_rule;
-            
+            // temp rule obj to extract single ip and port or rannged ip and port
+            //  Rule temp_rule;
+
             char *commandtype = strtok(command, " ");
             char *ipAddress = strtok(NULL, " ");
             char *port = strtok(NULL, " ");
             // printf("Command: %s, IP: %s, Port: %s\n", commandtype, ipAddress, port);
             // printf("Command: %s, IP: %s, Port: %s\n", commandtype, ipAddress, port);
 
-            //check or split ip and port into start and end
+            // check or split ip and port into start and end
             char *ip_start = strtok(ipAddress, "-");
             char *ip_end = strtok(NULL, "-");
             if (ip_end == NULL)
@@ -473,19 +484,21 @@ int main(int argc, char **argv)
             // // Split port range
             char *port_start = strtok(port, "-");
             char *port_end = strtok(NULL, "-");
-            if(port_end == NULL)
-                port_end = port_start;// Single port
-        
+            if (port_end == NULL)
+                port_end = port_start; // Single port
+
             // printf("IP start: %s, IP end: %s, Port start: %s, Port end: %s\n", ip_start, ip_end, port_start, port_end);
 
             // Parse and handle each command
             if (strncmp(commandtype, "A", 1) == 0)
             {
                 // Handle "Add rule" command
-                if(is_valid_rule(ipAddress, port)){
-                    add_rule(&rules, ip_start, ip_end, atoi(port_start),atoi(port_end));
+                if (is_valid_rule(ipAddress, port))
+                {
+                    add_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end));
                 }
-                else{
+                else
+                {
                     printf("Invalid rule\n");
                 }
 
@@ -494,28 +507,31 @@ int main(int argc, char **argv)
             else if (strncmp(commandtype, "D", 1) == 0)
             {
                 // Handle "Delete rule" command
-                if(is_valid_rule(ipAddress, port)){
+                if (is_valid_rule(ipAddress, port))
+                {
                     delete_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end));
                 }
-                else{
+                else
+                {
                     printf("Rule Invalid\n");
                 }
             }
             else if (strncmp(commandtype, "L", 1) == 0)
             {
                 // Handle "List rules" command
-                if(is_valid_command(command)){
+                if (is_valid_command(command))
+                {
                     list_rules(&rules);
                 }
-                else{
+                else
+                {
                     printf("Invalid use of command L. L should be only argument\n");
-                }   
-            
+                }
             }
             else if (strncmp(commandtype, "C", 1) == 0)
             {
                 // Handle "Check rule" command
-                if (is_valid_ip(ipAddress) && atoi(port_start) >= 0 && atoi(port_end) <= 65535 && atoi(port_start) <= atoi(port_end)  && is_valid_rule(ipAddress, port))
+                if (is_valid_ip(ipAddress) && atoi(port_start) >= 0 && atoi(port_end) <= 65535 && atoi(port_start) <= atoi(port_end) && is_valid_rule(ipAddress, port))
                 {
                     check_rule(&rules, ipAddress, atoi(port));
                 }
@@ -526,7 +542,7 @@ int main(int argc, char **argv)
             }
             else if (strncmp(commandtype, "R", 1) == 0)
             {
-                
+
                 list_requests(head);
             }
             else
@@ -591,10 +607,113 @@ int main(int argc, char **argv)
                 error("ERROR reading from socket");
             }
 
+            // Process command using your existing handlers
+            char response[BUFFERLENGTH];
+            bzero(response, BUFFERLENGTH);
+
+            // Store request
+            Request *new_request = (Request *)malloc(sizeof(Request));
+            if (new_request)
+            {
+                strncpy(new_request->command, buffer, 100);
+                new_request->next = NULL;
+                if (head == NULL)
+                {
+                    head = new_request;
+                }
+                else
+                {
+                    Request *current = head;
+                    while (current->next != NULL)
+                    {
+                        current = current->next;
+                    }
+                    current->next = new_request;
+                }
+            }
+
             printf("Here is the message: %s\n", buffer);
 
+            char command_copy[100];
+            strncpy(command_copy, buffer, 100);
+            // Split the command by whitespace
+            char *commandtype = strtok(command_copy, " ");
+            char *ipRange = strtok(NULL, " ");
+            char *portRange = strtok(NULL, " ");
+
+            // check or split ip and port into start and end
+            char *ip_start = strtok(ipRange, "-");
+            char *ip_end = strtok(NULL, "-");
+            if (ip_end == NULL)
+                ip_end = ip_start; // Single IP
+            
+            // Split port range
+            char *port_start = strtok(portRange, "-");
+            char *port_end = strtok(NULL, "-");
+            if (port_end == NULL)
+                port_end = port_start; // Single port
+
+            if (strncmp(commandtype, "A", 1) == 0){
+                // Handle "Add rule" command
+                if (is_valid_rule(ipRange, portRange))
+                {
+                    add_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end));
+                    snprintf(response, BUFFERLENGTH, "Rule added\n");
+                }
+                else
+                {
+                    snprintf(response, BUFFERLENGTH, "Invalid rule\n");
+                }
+            }
+            else if (strncmp(commandtype, "D", 1) == 0)
+            {
+                // Handle "Delete rule" command
+                if (is_valid_rule(ipRange, portRange))
+                {
+                    delete_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end));
+                    snprintf(response, BUFFERLENGTH, "Rule deleted\n");
+                }
+                else
+                {
+                    snprintf(response, BUFFERLENGTH, "Rule Invalid\n");
+                }
+            }
+            else if (strncmp(commandtype, "L", 1) == 0)
+            {
+                // Handle "List rules" command
+                if (is_valid_command(buffer))
+                {
+                    list_rules(&rules);
+                }
+                else
+                {
+                    snprintf(response, BUFFERLENGTH, "Invalid use of command L. L should be only argument\n");
+                }
+            }
+            else if (strncmp(commandtype, "C", 1) == 0)
+            {
+                // Handle "Check rule" command
+                if (is_valid_ip(ipRange) && atoi(port_start) >= 0 && atoi(port_end) <= 65535 && atoi(port_start) <= atoi(port_end) && is_valid_rule(ipRange, portRange))
+                {
+                    check_rule(&rules, ipRange, atoi(port_start));
+                    snprintf(response, BUFFERLENGTH, "Connection accepted\n");
+                }
+                else
+                {
+                    snprintf(response, BUFFERLENGTH, "Illegal IP address or port specified\n");
+                }
+            }
+            else if (strncmp(commandtype, "R", 1) == 0)
+            {
+                list_requests(head);
+            }
+            else
+            {
+                snprintf(response, BUFFERLENGTH, "Illegal Request\n");
+            }
+
             /* send the reply back */
-            n = write(newsockfd, "I got your message", 18);
+            n = write(newsockfd, response, strlen(response));
             if (n < 0)
             {
                 error("ERROR writing to socket");
@@ -605,7 +724,6 @@ int main(int argc, char **argv)
 
         return 0;
     }
+
     return 0;
 }
-
-

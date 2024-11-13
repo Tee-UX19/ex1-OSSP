@@ -25,8 +25,8 @@ int main(int argc, char *argv[])
     int res;
     
     char buffer[BUFFERLENGTH];
-    if (argc < 3) {
-       fprintf (stderr, "usage %s hostname port or\n", argv[0]);
+    if (argc < 4) {
+       fprintf (stderr, "usage %s hostname port <commandtype> <iprange> <portrange>", argv[0]);
        exit(1);
     }
 
@@ -69,7 +69,16 @@ int main(int argc, char *argv[])
     freeaddrinfo(result);           /* No longer needed */
 
     /* prepare message */
-    snprintf(buffer, BUFFERLENGTH, "%s", argv[3]);
+    bzero(buffer, BUFFERLENGTH);
+
+    //combine all arguments into one string
+    int i;
+    for (i = 3; i < argc; i++) {
+        if (i > 3) {
+            strcat(buffer, " ");
+            }
+        strcat(buffer, argv[i]);
+        }
 
     /* send message */
     n = write(sockfd, buffer, strlen(buffer));

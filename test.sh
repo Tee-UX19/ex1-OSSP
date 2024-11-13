@@ -69,6 +69,13 @@ function interactive_testcase() {
     # start server
     echo -en "starting server: \t"
     echo "A 147.188.193.15 22" | ./$server -i > $serverOut  2>&1 &
+
+    # # Debug prints
+    # echo "=== Expected output ==="
+    # cat $successFile
+    # echo "=== Actual output ==="
+    # cat $serverOut
+    # echo "===================="
     if [ $? -ne 0 ]
     then
 	echo -e "ERROR: could not start interactive server"
