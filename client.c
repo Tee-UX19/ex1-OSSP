@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
     
     char buffer[BUFFERLENGTH];
     if (argc < 3) {
-       fprintf (stderr, "usage %s hostname port\n", argv[0]);
+       fprintf (stderr, "usage %s hostname port or\n", argv[0]);
        exit(1);
     }
 
@@ -69,23 +69,22 @@ int main(int argc, char *argv[])
     freeaddrinfo(result);           /* No longer needed */
 
     /* prepare message */
-    printf ("Please enter the message: ");
-    bzero (buffer, BUFFERLENGTH);
-    fgets (buffer, BUFFERLENGTH, stdin);
+    snprintf(buffer, BUFFERLENGTH, "%s", argv[3]);
 
     /* send message */
-    n = write (sockfd, buffer, strlen(buffer));
+    n = write(sockfd, buffer, strlen(buffer));
     if (n < 0) {
-         error ("ERROR writing to socket");
+         error("ERROR writing to socket");
     }
-    bzero (buffer, BUFFERLENGTH);
+    bzero(buffer, BUFFERLENGTH);
 
     /* wait for reply */
-    n = read (sockfd, buffer, BUFFERLENGTH -1);
+    n = read(sockfd, buffer, BUFFERLENGTH - 1);
     if (n < 0) {
-         error ("ERROR reading from socket");
+         error("ERROR reading from socket");
     }
-    printf ("%s\n",buffer);
+    printf("%s\n", buffer);
     
+    close(sockfd);
     return 0;
 }
