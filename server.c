@@ -424,7 +424,9 @@ int main(int argc, char **argv)
         {
             char command[100];
             // printf("\n Enter command: ");
-            fgets(command, sizeof(command), stdin);
+            if(fgets(command, sizeof(command), stdin)==NULL){
+                break;
+            }
             // remove newline character
             command[strcspn(command, "\n")] = 0;
 
@@ -603,8 +605,7 @@ int main(int argc, char **argv)
 
         return 0;
     }
-    printf("Server to be written\n");
     return 0;
 }
 
-//
+
