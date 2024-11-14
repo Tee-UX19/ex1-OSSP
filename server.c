@@ -14,6 +14,8 @@
 #define IP_RANGESIZE 32
 #define PORT_RANGESIZE 12
 
+
+
 typedef struct Query
 {
     char ip[16];
@@ -43,10 +45,16 @@ typedef struct Request
     struct Request *next;
 } Request;
 
+
+// Global variables
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+Request *head = NULL;
+RuleSet rules = {NULL, 0};
+
+
 void error(char *msg)
 {
     perror(msg);
-    exit(0);
 }
 
 int is_valid_ip(const char *ip)
@@ -457,11 +465,140 @@ void delete_rule(RuleSet *rules, char *ip_start, char *ip_end, uint16_t port_sta
     snprintf(response, BUFFERLENGTH, "Rule not found\n");
 }
 
+void *handle_client(void *arg){
+    int newclient = *((int *)arg);
+    free(arg);
+
+    char buffer[BUFFERLENGTH];
+    char serverResponse[BUFFERLENGTH];
+
+    bzero(buffer, BUFFERLENGTH);
+    bzero(serverResponse, BUFFERLENGTH);
+
+    /* read the data */
+    int n = read(newclient, buffer, BUFFERLENGTH - 1);
+    if (n < 0)
+    {
+        error("ERROR reading from socket");
+    }
+
+    char command_copy[100];
+    strncpy(command_copy, buffer, 100);
+    // Split the command by whitespace
+    char *commandtype = strtok(command_copy, " ");
+    char *ipRange = strtok(NULL, " ");
+    char *portRange = strtok(NULL, " ");
+
+    // Process command using your existing handlers
+    bzero(serverResponse, BUFFERLENGTH);
+
+//lock with mutex
+    // Store request
+        pthread_mutex_lock(&mutex);
+    if (*commandtype != 'R')
+    {
+        Request *new_request = (Request *)malloc(sizeof(Request));
+        if (new_request)
+        {
+            strncpy(new_request->command, buffer, 100);
+            new_request->next = NULL;
+            if (head == NULL)
+            {
+                head = new_request;
+            }
+            else
+            {
+                Request *current = head;
+                while (current->next != NULL)
+                {
+                    current = current->next;
+                }
+                current->next = new_request;
+            }
+        }
+    }
+    pthread_mutex_unlock(&mutex);
+
+    printf("Here is the message: %s\n", buffer);
+
+    // check or split ip and port into start and end
+    char *ip_start = strtok(ipRange, "-");
+    char *ip_end = strtok(NULL, "-");
+    if (ip_end == NULL)
+        ip_end = ip_start; // Single IP
+
+    // Split port range
+    char *port_start = strtok(portRange, "-");
+    char *port_end = strtok(NULL, "-");
+    if (port_end == NULL)
+        port_end = port_start; // Single port
+
+    if (strncmp(commandtype, "A", 1) == 0)
+    {   pthread_mutex_lock(&mutex);
+        add_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end), serverResponse);
+        printf("%s", serverResponse);
+        pthread_mutex_unlock(&mutex);
+    }
+    else if (strncmp(commandtype, "D", 1) == 0)
+    {
+        pthread_mutex_lock(&mutex);
+        delete_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end), serverResponse);
+        printf("%s", serverResponse);
+        pthread_mutex_unlock(&mutex);
+    }
+    else if (strncmp(commandtype, "L", 1) == 0)
+    {
+        if (is_valid_command(command_copy))
+        {
+            list_rules(&rules, serverResponse);
+            printf("%s", serverResponse);
+        }
+        else
+        {
+            snprintf(serverResponse, BUFFERLENGTH, "Invalid use of command L. L should be only argument\n");
+            printf("%s", serverResponse);
+        }
+    }
+    else if (strncmp(commandtype, "C", 1) == 0)
+    {      
+        if (is_valid_ipRange(ipRange) && atoi(port_start) > 0 && atoi(port_end) < 65535 && atoi(port_start) <= atoi(port_end) && is_valid_rule(ipRange, portRange))
+        {
+            pthread_mutex_lock(&mutex);
+            check_rule(&rules, ipRange, atoi(portRange), serverResponse);
+            printf("%s", serverResponse);
+            pthread_mutex_unlock(&mutex);
+        }
+        else
+        {
+            snprintf(serverResponse, BUFFERLENGTH, "Illegal IP address or port specified\n");
+            printf("%s", serverResponse);
+        }
+    }
+    else if (strncmp(commandtype, "R", 1) == 0)
+    {
+        list_requests(head, serverResponse);
+        printf("%s", serverResponse);
+    }
+    else
+    {
+        snprintf(serverResponse, BUFFERLENGTH, "Illegal Request\n");
+        printf("%s", serverResponse);
+    }
+
+    /* send the reply back */
+    n = write(newclient, serverResponse, strlen(serverResponse));
+    if (n < 0)
+    {
+        error("ERROR writing to socket");
+    }
+
+    close(newclient); /* important to avoid memory leak */
+    pthread_exit(NULL);
+
+}
+
 int main(int argc, char **argv)
 {
-
-    Request *head = NULL;
-    RuleSet rules = {NULL, 0};
     char response[BUFFERLENGTH];
 
     if (argc < 2 || argc > 2)
@@ -617,9 +754,9 @@ int main(int argc, char **argv)
         // Implement server's regular mode (e.g., listening on a socket)
         socklen_t clilen;
         int sockfd, newsockfd, portno;
-        char buffer[BUFFERLENGTH];
+        // char buffer[BUFFERLENGTH];
         struct sockaddr_in6 serv_addr, cli_addr;
-        int n;
+        // int n;
         if (argc < 2)
         {
             fprintf(stderr, "ERROR, no port provided\n");
@@ -663,124 +800,36 @@ int main(int argc, char **argv)
             if (newsockfd < 0)
             {
                 error("ERROR on accept");
-            }
-            bzero(buffer, BUFFERLENGTH);
-            bzero(response, BUFFERLENGTH);
-
-            /* read the data */
-            n = read(newsockfd, buffer, BUFFERLENGTH - 1);
-            if (n < 0)
-            {
-                error("ERROR reading from socket");
+                continue;
             }
 
-            char command_copy[100];
-            strncpy(command_copy, buffer, 100);
-            // Split the command by whitespace
-            char *commandtype = strtok(command_copy, " ");
-            char *ipRange = strtok(NULL, " ");
-            char *portRange = strtok(NULL, " ");
-
-            // Process command using your existing handlers
-            bzero(response, BUFFERLENGTH);
-
-            // Store request
-            if (*commandtype != 'R')
+            int *client = malloc(sizeof(int));
+            if (client == NULL)
             {
-                Request *new_request = (Request *)malloc(sizeof(Request));
-                if (new_request)
-                {
-                    strncpy(new_request->command, buffer, 100);
-                    new_request->next = NULL;
-                    if (head == NULL)
-                    {
-                        head = new_request;
-                    }
-                    else
-                    {
-                        Request *current = head;
-                        while (current->next != NULL)
-                        {
-                            current = current->next;
-                        }
-                        current->next = new_request;
-                    }
-                }
+                error("Failed to allocate memory for client");
+                close(newsockfd);
+                continue;
             }
+            *client = newsockfd;
 
-            printf("Here is the message: %s\n", buffer);
-
-            // check or split ip and port into start and end
-            char *ip_start = strtok(ipRange, "-");
-            char *ip_end = strtok(NULL, "-");
-            if (ip_end == NULL)
-                ip_end = ip_start; // Single IP
-
-            // Split port range
-            char *port_start = strtok(portRange, "-");
-            char *port_end = strtok(NULL, "-");
-            if (port_end == NULL)
-                port_end = port_start; // Single port
-
-            if (strncmp(commandtype, "A", 1) == 0)
+            pthread_t client_thread;
+            if (pthread_create(&client_thread, NULL, handle_client, (void *)client) != 0)
             {
-                add_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end), response);
-                printf("%s", response);
-            }
-            else if (strncmp(commandtype, "D", 1) == 0)
-            {
-
-                delete_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end), response);
-                printf("%s", response);
-            }
-            else if (strncmp(commandtype, "L", 1) == 0)
-            {
-                if (is_valid_command(command_copy))
-                {
-                    list_rules(&rules, response);
-                    printf("%s", response);
-                }
-                else
-                {
-                    snprintf(response, BUFFERLENGTH, "Invalid use of command L. L should be only argument\n");
-                    printf("%s", response);
-                }
-            }
-            else if (strncmp(commandtype, "C", 1) == 0)
-            {
-                if (is_valid_ipRange(ipRange) && atoi(port_start) > 0 && atoi(port_end) < 65535 && atoi(port_start) <= atoi(port_end) && is_valid_rule(ipRange, portRange))
-                {
-                    check_rule(&rules, ipRange, atoi(portRange), response);
-                    printf("%s", response);
-                }
-                else
-                {
-                    snprintf(response, BUFFERLENGTH, "Illegal IP address or port specified\n");
-                    printf("%s", response);
-                }
-            }
-            else if (strncmp(commandtype, "R", 1) == 0)
-            {
-                list_requests(head, response);
-                printf("%s", response);
+                error("Failed to create thread");
+                free(client);
+                close(newsockfd);
+                continue;
             }
             else
             {
-                snprintf(response, BUFFERLENGTH, "Illegal Request\n");
-                printf("%s", response);
+                pthread_detach(client_thread);
             }
-
-            /* send the reply back */
-            n = write(newsockfd, response, strlen(response));
-            if (n < 0)
-            {
-                error("ERROR writing to socket");
-            }
-
-            close(newsockfd); /* important to avoid memory leak */
-        }
+                }
 
         return 0;
     }
+    pthread_mutex_destroy(&mutex);
+    free_rules(&rules);
+    free(head);
     return 0;
 }

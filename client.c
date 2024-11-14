@@ -136,7 +136,13 @@ int main(int argc, char *argv[])
 
     /* wait for reply */
     n = read(sockfd, buffer, BUFFERLENGTH - 1);
-    if (n < 0)
+    if (n == 0)
+    {
+        fprintf(stderr, "Server closed connection\n");
+        close(sockfd);
+        exit(1);
+    }
+    else if (n < 0)
     {
         error("ERROR reading from socket");
     }
