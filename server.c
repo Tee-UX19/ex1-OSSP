@@ -58,6 +58,12 @@ typedef struct Request
 //     return 1; // Valid port range
 // }
 
+void error(char *msg)
+{
+    perror(msg);
+    exit(0);
+}
+
 int is_valid_ip(const char *ip)
 {
     int num, dots = 0;
@@ -163,8 +169,8 @@ int is_valid_command(char *command)
     char *ipRange = strtok(NULL, " ");
     char *portRange = strtok(NULL, " ");
 
-    if (commandtype == NULL)
-    {
+    if (commandtype == NULL){
+    // {   error("Null command");
         return 0; // Invalid command
     }
 
@@ -218,11 +224,7 @@ void add_query_to_rule(Rule *rule, const char *ip, uint16_t port)
 }
 
 /* displays error messages from system calls */
-void error(char *msg)
-{
-    perror(msg);
-    exit(1);
-}
+
 // functions to handle commands with rules
 void list_requests(Request *head, char *response)
 {
@@ -390,7 +392,7 @@ void list_rules(RuleSet *rules, char *response)
                      current->ip_start, current->ip_end,
                      current->port_start, current->port_end);
         }
-        if(current->matched_queries != NULL)
+        if (current->matched_queries != NULL)
         {
             strcat(temp, "Matched queries:\n");
             Query *query = current->matched_queries;
@@ -402,7 +404,7 @@ void list_rules(RuleSet *rules, char *response)
                 query = query->next;
             }
         }
-        
+
         strcat(response, temp);
         current = current->next;
     }
@@ -477,6 +479,10 @@ int main(int argc, char **argv)
         {
             char command[100];
             bzero(response, BUFFERLENGTH);
+            
+            // if(feof(stdin)){
+            //     break;
+            // }
 
             // printf("\n Enter command: ");
             if (fgets(command, sizeof(command), stdin) == NULL)
@@ -485,6 +491,10 @@ int main(int argc, char **argv)
             }
             // remove newline character
             command[strcspn(command, "\n")] = 0;
+
+            // if(!is_valid_command(command)){
+            //     error("Invalid command");
+            // }
 
             if (strncmp(command, "exit", 4) == 0)
             {
@@ -612,6 +622,12 @@ int main(int argc, char **argv)
             error("ERROR opening socket");
         }
 
+        int yes = 1;
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) < 0)
+        {
+            error("ERROR setting socket options");
+        }
+
         bzero((char *)&serv_addr, sizeof(serv_addr));
         portno = atoi(argv[1]);
         serv_addr.sin6_family = AF_INET6;
@@ -702,14 +718,13 @@ int main(int argc, char **argv)
             else if (strncmp(commandtype, "D", 1) == 0)
             {
                 // Handle "Delete rule" command
-                    
+
                 delete_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end), response);
                 printf("%s", response);
-           
             }
             else if (strncmp(commandtype, "L", 1) == 0)
             {
-              // Handle "List rules" command
+                // Handle "List rules" command
                 if (is_valid_command(command_copy))
                 {
                     list_rules(&rules, response);
@@ -724,7 +739,7 @@ int main(int argc, char **argv)
             else if (strncmp(commandtype, "C", 1) == 0)
             {
                 // Handle "Check rule" command
-               if (is_valid_ipRange(ipRange) && atoi(port_start) > 0 && atoi(port_end) < 65535 && atoi(port_start) <= atoi(port_end) && is_valid_rule(ipRange, portRange))
+                if (is_valid_ipRange(ipRange) && atoi(port_start) > 0 && atoi(port_end) < 65535 && atoi(port_start) <= atoi(port_end) && is_valid_rule(ipRange, portRange))
                 {
                     check_rule(&rules, ipRange, atoi(portRange), response);
                     printf("%s", response);
@@ -736,7 +751,7 @@ int main(int argc, char **argv)
                 }
             }
             else if (strncmp(commandtype, "R", 1) == 0)
-            {   
+            {
                 list_requests(head, response);
                 printf("%s", response);
             }
