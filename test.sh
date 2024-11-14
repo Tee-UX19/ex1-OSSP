@@ -71,11 +71,11 @@ function interactive_testcase() {
     echo "A 147.188.193.15 22" | ./$server -i > $serverOut  2>&1 &
 
     # # Debug prints
-    # echo "=== Expected output ==="
-    # cat $successFile
-    # echo "=== Actual output ==="
-    # cat $serverOut
-    # echo "===================="
+    echo -e "\n=== Expected output ===\n"
+    cat $successFile
+    echo -e "\n=== Actual output ===\n"
+    cat $serverOut
+    echo -e "\n====================\n"
     if [ $? -ne 0 ]
     then
 	echo -e "ERROR: could not start interactive server"
@@ -121,6 +121,13 @@ function basic_testcase(){
     command="A 147.188.192.41 443"
     echo -en "executing client: \t"
     ./$client $IPADDRESS $PORT $command > $clientOut 2>/dev/null
+
+    # # Debug prints
+    echo -e "\n=== Expected output ===\n"
+    cat $successFile
+    echo -e "\n=== Actual output ===\n"
+    cat $clientOut
+    echo -e "\n====================\n"
     if [ $? -ne 0 ]
     then
 	echo -e "Error: Could not execute client"
