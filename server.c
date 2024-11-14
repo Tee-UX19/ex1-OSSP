@@ -14,8 +14,6 @@
 #define IP_RANGESIZE 32
 #define PORT_RANGESIZE 12
 
-
-
 typedef struct Query
 {
     char ip[16];
@@ -45,12 +43,10 @@ typedef struct Request
     struct Request *next;
 } Request;
 
-
 // Global variables
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 Request *head = NULL;
 RuleSet rules = {NULL, 0};
-
 
 void error(char *msg)
 {
@@ -342,17 +338,32 @@ void check_rule(RuleSet *rules, char *ip, uint16_t port, char *response)
     snprintf(response, BUFFERLENGTH, "Connection rejected\n");
 }
 
-void free_rules(RuleSet *rules)
-{
+void free_rules(RuleSet *rules) {
     Rule *current = rules->head;
-    while (current != NULL)
-    {
+    while (current != NULL) {
         Rule *next = current->next;
+        // Free matched queries
+        Query *query = current->matched_queries;
+        while (query != NULL) {
+            Query *next_query = query->next;
+            free(query);
+            query = next_query;
+        }
         free(current);
         current = next;
     }
     rules->head = NULL;
     rules->size = 0;
+}
+void free_requests(Request *head)
+{
+    Request *current = head;
+    while (current != NULL)
+    {
+        Request *next = current->next;
+        free(current);
+        current = next;
+    }
 }
 
 void list_rules(RuleSet *rules, char *response)
@@ -465,7 +476,8 @@ void delete_rule(RuleSet *rules, char *ip_start, char *ip_end, uint16_t port_sta
     snprintf(response, BUFFERLENGTH, "Rule not found\n");
 }
 
-void *handle_client(void *arg){
+void *handle_client(void *arg)
+{
     int newclient = *((int *)arg);
     free(arg);
 
@@ -492,9 +504,9 @@ void *handle_client(void *arg){
     // Process command using your existing handlers
     bzero(serverResponse, BUFFERLENGTH);
 
-//lock with mutex
-    // Store request
-        pthread_mutex_lock(&mutex);
+    // lock with mutex
+    //  Store request
+    pthread_mutex_lock(&mutex);
     if (*commandtype != 'R')
     {
         Request *new_request = (Request *)malloc(sizeof(Request));
@@ -534,7 +546,8 @@ void *handle_client(void *arg){
         port_end = port_start; // Single port
 
     if (strncmp(commandtype, "A", 1) == 0)
-    {   pthread_mutex_lock(&mutex);
+    {
+        pthread_mutex_lock(&mutex);
         add_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end), serverResponse);
         printf("%s", serverResponse);
         pthread_mutex_unlock(&mutex);
@@ -560,7 +573,7 @@ void *handle_client(void *arg){
         }
     }
     else if (strncmp(commandtype, "C", 1) == 0)
-    {      
+    {
         if (is_valid_ipRange(ipRange) && atoi(port_start) > 0 && atoi(port_end) < 65535 && atoi(port_start) <= atoi(port_end) && is_valid_rule(ipRange, portRange))
         {
             pthread_mutex_lock(&mutex);
@@ -594,7 +607,6 @@ void *handle_client(void *arg){
 
     close(newclient); /* important to avoid memory leak */
     pthread_exit(NULL);
-
 }
 
 int main(int argc, char **argv)
@@ -824,12 +836,12 @@ int main(int argc, char **argv)
             {
                 pthread_detach(client_thread);
             }
-                }
+        }
 
         return 0;
     }
     pthread_mutex_destroy(&mutex);
     free_rules(&rules);
-    free(head);
+    free_requests(head);
     return 0;
 }
