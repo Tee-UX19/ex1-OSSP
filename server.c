@@ -532,7 +532,8 @@ int main(int argc, char **argv)
                 exit(0);
             }
 
-            Request *new_request = (Request *)malloc(sizeof(Request));
+           if(*checkingCommandtype!='R')	
+           { Request *new_request = (Request *)malloc(sizeof(Request));
             if (!new_request)
             {
                 perror("Failed to allocate memory for new request");
@@ -552,7 +553,8 @@ int main(int argc, char **argv)
                     current = current->next;
                 }
                 current->next = new_request;
-            }
+            } 
+           }
             // temp rule obj to extract single ip and port or rannged ip and port
             //  Rule temp_rule;
 
@@ -702,10 +704,22 @@ int main(int argc, char **argv)
                 error("ERROR reading from socket");
             }
 
+        
+             char command_copy[100];
+            strncpy(command_copy, buffer, 100);
+            // Split the command by whitespace
+            char *commandtype = strtok(command_copy, " ");
+            char *ipRange = strtok(NULL, " ");
+            char *portRange = strtok(NULL, " ");
+
+            
+
+
             // Process command using your existing handlers
             bzero(response, BUFFERLENGTH);
 
             // Store request
+            if(*commandtype!='R'){
             Request *new_request = (Request *)malloc(sizeof(Request));
             if (new_request)
             {
@@ -724,16 +738,11 @@ int main(int argc, char **argv)
                     }
                     current->next = new_request;
                 }
-            }
+            }}
 
             printf("Here is the message: %s\n", buffer);
 
-            char command_copy[100];
-            strncpy(command_copy, buffer, 100);
-            // Split the command by whitespace
-            char *commandtype = strtok(command_copy, " ");
-            char *ipRange = strtok(NULL, " ");
-            char *portRange = strtok(NULL, " ");
+         
 
             // check or split ip and port into start and end
             char *ip_start = strtok(ipRange, "-");
