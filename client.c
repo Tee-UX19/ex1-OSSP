@@ -80,6 +80,19 @@ int main(int argc, char *argv[])
         strcat(buffer, argv[i]);
         }
 
+    //check if the command is valid with a copy of the command
+    char command_copy[100];
+    strncpy(command_copy, buffer, 100);
+
+    char *commandtype = strtok(command_copy, " ");
+    if(commandtype == NULL){
+        error("Null command");
+    }
+char *ipRange = strtok(NULL, " ");
+char *portRange = strtok(NULL, " ");
+if(*commandtype == 'A' && *commandtype == 'C' && *commandtype == 'D' && (ipRange == NULL || portRange == NULL)){
+    error("Invalid command for A, D, C: IP and port must be specified");}
+
     /* send message */
     n = write(sockfd, buffer, strlen(buffer));
     if (n < 0) {

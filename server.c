@@ -367,7 +367,8 @@ void free_rules(RuleSet *rules)
 void list_rules(RuleSet *rules, char *response)
 {
     Rule *current = rules->head;
-    char temp[BUFFERLENGTH];
+    // Clear response buffer
+    response[0] = '\0';
 
     if (current == NULL)
     {
@@ -375,37 +376,55 @@ void list_rules(RuleSet *rules, char *response)
         return;
     }
 
-    // Clear response buffer
-    response[0] = '\0';
-
     while (current != NULL)
     {
-        // Accumulate each rule's info
+        char temp[BUFFERLENGTH];
+
+        // Create ipRange and portRange strings
+        char ipRange[33];
+        char portRange[13];
+
         if (strcmp(current->ip_start, current->ip_end) == 0)
-        {
-            snprintf(temp, BUFFERLENGTH, "Rule: %s %d\n",
-                     current->ip_start, current->port_start);
-        }
+            snprintf(ipRange, sizeof(ipRange), "%s", current->ip_start);
         else
+            snprintf(ipRange, sizeof(ipRange), "%s-%s", current->ip_start, current->ip_end);
+
+        if (current->port_start == current->port_end)
+            snprintf(portRange, sizeof(portRange), "%d", current->port_start);
+        else
+            snprintf(portRange, sizeof(portRange), "%d-%d", current->port_start, current->port_end);
+
+        // Add Rule line to temp
+        snprintf(temp, BUFFERLENGTH, "Rule: %s %s\n", ipRange, portRange);
+
+        // Append temp to response
+        if (strlen(response) + strlen(temp) < BUFFERLENGTH)
+            strcat(response, temp);
+        else
+            break;
+
+        // Add matched queries
+        Query *query = current->matched_queries;
+        while (query != NULL)
         {
-            snprintf(temp, BUFFERLENGTH, "Rule: %s-%s %d-%d\n",
-                     current->ip_start, current->ip_end,
-                     current->port_start, current->port_end);
-        }
-        if (current->matched_queries != NULL)
-        {
-            strcat(temp, "Matched queries:\n");
-            Query *query = current->matched_queries;
-            while (query != NULL)
-            {
-                char query_temp[BUFFERLENGTH];
-                snprintf(query_temp, BUFFERLENGTH, "IP: %s, Port: %d\n", query->ip, query->port);
-                strcat(temp, query_temp);
-                query = query->next;
-            }
+            char query_line[BUFFERLENGTH];
+            snprintf(query_line, BUFFERLENGTH, "Query: %s %d\n", query->ip, query->port);
+
+            // Append query_line to response
+            if (strlen(response) + strlen(query_line) < BUFFERLENGTH)
+                strcat(response, query_line);
+            else
+                break;
+
+            query = query->next;
         }
 
-        strcat(response, temp);
+        // Add a newline after each rule and its queries
+        if (strlen(response) + 1 < BUFFERLENGTH)
+            strcat(response, "\n");
+        else
+            break;
+
         current = current->next;
     }
 }
@@ -492,6 +511,18 @@ int main(int argc, char **argv)
             // remove newline character
             command[strcspn(command, "\n")] = 0;
 
+            //make a copy of command to check if it is valid
+            char command_copy[100];
+            strncpy(command_copy, command, 100);
+             char *checkingCommandtype = strtok(command_copy, " ");
+             if(checkingCommandtype == NULL){
+                 error("Null command");
+             }
+             
+
+
+
+
             // if(!is_valid_command(command)){
             //     error("Invalid command");
             // }
@@ -543,11 +574,19 @@ int main(int argc, char **argv)
             if (port_end == NULL)
                 port_end = port_start; // Single port
 
+            if(*checkingCommandtype == 'A' || *checkingCommandtype == 'D' || *checkingCommandtype == 'C'){
+                if(ipAddress == NULL || port == NULL){
+                    error("Invalid command for A, D, C: IP and port must be specified");
+                }
+            }
+
             // printf("IP start: %s, IP end: %s, Port start: %s, Port end: %s\n", ip_start, ip_end, port_start, port_end);
 
             // Parse and handle each command
             if (strncmp(commandtype, "A", 1) == 0)
-            {
+            {    
+
+                
                 // Handle "Add rule" command
                 add_rule(&rules, ip_start, ip_end, atoi(port_start), atoi(port_end), response);
                 printf("%s", response);
