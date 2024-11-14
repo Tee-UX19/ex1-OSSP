@@ -13,7 +13,7 @@
 /* displays error messages from system calls */
 void error(char *msg)
 {
-    perror(msg);
+    fprintf(stderr, "ERROR: %s\n", msg);
     exit(0);
 }
 

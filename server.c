@@ -50,7 +50,7 @@ RuleSet rules = {NULL, 0};
 
 void error(char *msg)
 {
-    perror(msg);
+    fprintf(stderr, "ERROR: %s\n", msg);   
 }
 
 int is_valid_ip(const char *ip)
@@ -653,11 +653,6 @@ int main(int argc, char **argv)
             //     error("Invalid command");
             // }
 
-            if (strncmp(command, "exit", 4) == 0)
-            {
-                exit(0);
-            }
-
             if (*checkingCommandtype != 'R')
             {
                 Request *new_request = (Request *)malloc(sizeof(Request));
@@ -706,6 +701,7 @@ int main(int argc, char **argv)
                 if (ipAddress == NULL || port == NULL)
                 {
                     error("Invalid command for A, D, C: IP and port must be specified");
+                    exit(1);
                 }
             }
 
