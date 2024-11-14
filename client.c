@@ -37,14 +37,14 @@ int main(int argc, char *argv[])
     char *ipRange = argv[4];
     char *portRange = argv[5];
 
-    if (*commandtype=='A' || *commandtype=='D' || *commandtype=='C')
+    if (*commandtype == 'A' || *commandtype == 'D' || *commandtype == 'C')
     {
         if (ipRange == NULL || portRange == NULL)
         {
             error("Invalid command for A, D, C: IP and port must be specified");
         }
     }
-    else if (*commandtype=='C')
+    else if (*commandtype == 'C')
     {
         if (ipRange == NULL || portRange == NULL)
         {
@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
             exit(1);
         }
     }
-    else if (*commandtype=='L' || *commandtype=='R')
+    else if (*commandtype == 'L' || *commandtype == 'R')
     {
         if (ipRange != NULL || portRange != NULL)
         {
@@ -68,7 +68,6 @@ int main(int argc, char *argv[])
     {
         /* code */
     }
-    
 
     /* Obtain address(es) matching host/port */
     /* code taken from the manual page for getaddrinfo */
@@ -126,7 +125,6 @@ int main(int argc, char *argv[])
     }
 
     // check if the command is valid with a copy of the command
-    
 
     /* send message */
     n = write(sockfd, buffer, strlen(buffer));
